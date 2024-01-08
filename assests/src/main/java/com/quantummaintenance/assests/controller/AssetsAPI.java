@@ -33,8 +33,11 @@ import com.quantummaintenance.assests.dto.CheckInOutDTO;
 import com.quantummaintenance.assests.dto.ExtraFieldNameDTO;
 import com.quantummaintenance.assests.dto.ExtraFieldsDTO;
 import com.quantummaintenance.assests.dto.ResponseMessageDTO;
+import com.quantummaintenance.assests.entity.MandatoryFields;
+import com.quantummaintenance.assests.entity.ShowFields;
 import com.quantummaintenance.assests.service.AssetsService;
-@CrossOrigin("http://localhost:4200/")
+//@CrossOrigin("http://localhost:4200/")
+//@CrossOrigin("*")
 @RestController
 @RequestMapping("/assets")
 public class AssetsAPI {
@@ -203,6 +206,38 @@ public class AssetsAPI {
 //		return new ResponseEntity<>(assetFileDTO.getFile(),HttpStatus.OK);
 //		return new ResponseEntity<>("Successfully Deleted File",HttpStatus.EXPECTATION_FAILED);
 	}
-	
+	@PostMapping("/mandatoryFields")
+	public void mandatoryFields(@RequestBody MandatoryFields mandatoryFields){
+		assetsService.updateMandatoryFields(mandatoryFields);
+	}
+	@PostMapping("/showFields")
+	public void showFields(@RequestBody ShowFields showFields){
+		assetsService.updateShowFields(showFields);
+	}
+	@GetMapping("/getMandatoryFields/{name}/{email}")
+	public ResponseEntity<MandatoryFields> getMandatoryFields(@PathVariable String name,@PathVariable String email){
+		System.out.println("============================>"+name+email);
+		MandatoryFields mandatoryFields=assetsService.getMandatoryFields(name,email);
+		return ResponseEntity.ok(mandatoryFields);
+	}
+	@GetMapping("/getShowFields/{name}/{email}")
+	public ResponseEntity<ShowFields> getShowFields(@PathVariable String name,@PathVariable String email){
+		ShowFields showFields=assetsService.getShowFields(name,email);
+		return ResponseEntity.ok(showFields);
+	}
+	@GetMapping("/getAllMandatoryFields/{email}")
+	public ResponseEntity<List<MandatoryFields>> getAllMandatoryFields(@PathVariable String email){
+		List<MandatoryFields> mandatoryFieldsList=assetsService.getAllMandatoryFields(email);
+		return ResponseEntity.ok(mandatoryFieldsList);
+	}
+	@GetMapping("/getAllShowFields/{email}")
+	public ResponseEntity<List<ShowFields>> getAllShowFields(@PathVariable String email){
+		List<ShowFields> showFieldsList=assetsService.getAllShowFields(email);
+		return ResponseEntity.ok(showFieldsList);
+	}
+	@DeleteMapping("/deleteShowAndMandatoryField/{name}/{email}")
+	public void showFields(@PathVariable String name,@PathVariable String email){
+		assetsService.deleteShowAndMandatoryFields(email, name);
+	}
 	
 }

@@ -14,6 +14,9 @@ import com.quantummaintenance.assests.dto.CheckInOutDTO;
 import com.quantummaintenance.assests.dto.ExtraFieldNameDTO;
 import com.quantummaintenance.assests.dto.ExtraFieldsDTO;
 import com.quantummaintenance.assests.entity.AssetFile;
+import com.quantummaintenance.assests.entity.MandatoryFields;
+import com.quantummaintenance.assests.entity.ShowFields;
+import com.quantummaintenance.assests.exception.ExtraFieldAlreadyPresentException;
 
 public interface AssetsService {
 	public List<AssetsDTO> getAssetsDetails(String email);
@@ -27,7 +30,7 @@ public interface AssetsService {
 	public List<ExtraFieldsDTO> getExtraFields(String id);
 	public void deleteExtraFields(String id) throws Exception;
 	public List<ExtraFieldNameDTO> getAssetExtraField(String email);
-	public void addAssetExtraField(ExtraFieldNameDTO extraFieldNameDTO) throws Exception;
+	public void addAssetExtraField(ExtraFieldNameDTO extraFieldNameDTO) throws ExtraFieldAlreadyPresentException;
 	public void deleteAssetExtraField(String id);
 	public Map<String, Map<String,String>>getextraFieldList(String email);
 	public void addCheckInOut(CheckInDTO checkInDTO);
@@ -36,4 +39,11 @@ public interface AssetsService {
 	public List<AssetFileDTO> getAssetFile(String assetId);
 	public AssetFileDTO downloadFile(String id);
 	public void deleteFile(String id);
+	public void updateShowFields(ShowFields showFields);
+	public void updateMandatoryFields(MandatoryFields mandatoryFields);
+	public ShowFields getShowFields(String name,String email);
+	public MandatoryFields getMandatoryFields(String name,String email);
+	public List<ShowFields> getAllShowFields(String email);
+	public List<MandatoryFields> getAllMandatoryFields(String email);
+	public void deleteShowAndMandatoryFields(String email,String name);
 }

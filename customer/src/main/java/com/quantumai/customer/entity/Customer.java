@@ -1,43 +1,68 @@
 package com.quantumai.customer.entity;
 
+import java.util.Collection;
+import java.util.List;
+
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import lombok.Data;
 
 @Data
-//@Document(collection="customer")
 @Document
-public class Customer {
+public class Customer implements UserDetails {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -5030992221287361876L;
 	private String firstName;
 	private String lastName;
 	private String email;
 	private String companyName;
 	private String mobileNumber;
 	
-	public String getFirstName() {
-		return firstName;
-	}
-	public void setFirstName(String firstName) {
-		this.firstName = firstName;
-	}
+	
+//	@Enumerated
+	private Role role;
+	
 
-	public String getLastName() {
-		return lastName;
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		// TODO Auto-generated method stub
+		return List.of(new SimpleGrantedAuthority(role.name()));
+	
 	}
-	public void setLastName(String lastName) {
-		this.lastName = lastName;
+	@Override
+	public String getPassword() {
+		// TODO Auto-generated method stub
+		return null;
 	}
-	public String getEmail() {
+	@Override
+	public String getUsername() {
+		// TODO Auto-generated method stub
 		return email;
 	}
-	public void setEmail(String email) {
-		this.email = email;
+	@Override
+	public boolean isAccountNonExpired() {
+		// TODO Auto-generated method stub
+		return true;
 	}
-	public String getCompanyName() {
-		return companyName;
+	@Override
+	public boolean isAccountNonLocked() {
+		// TODO Auto-generated method stub
+		return true;
 	}
-	public void setCompanyName(String companyName) {
-		this.companyName = companyName;
+	@Override
+	public boolean isCredentialsNonExpired() {
+		// TODO Auto-generated method stub
+		return true;
+	}
+	@Override
+	public boolean isEnabled() {
+		// TODO Auto-generated method stub
+		return true;
 	}
 	
 	

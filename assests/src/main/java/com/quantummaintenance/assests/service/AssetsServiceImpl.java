@@ -26,11 +26,16 @@ import com.quantummaintenance.assests.entity.CheckInOut;
 import com.quantummaintenance.assests.entity.CheckInOutDetails;
 import com.quantummaintenance.assests.entity.ExtraFieldName;
 import com.quantummaintenance.assests.entity.ExtraFields;
+import com.quantummaintenance.assests.entity.MandatoryFields;
+import com.quantummaintenance.assests.entity.ShowFields;
+import com.quantummaintenance.assests.exception.ExtraFieldAlreadyPresentException;
 import com.quantummaintenance.assests.repository.AssetFileRepository;
 import com.quantummaintenance.assests.repository.AssetsRepository;
 import com.quantummaintenance.assests.repository.CheckInOutRepository;
 import com.quantummaintenance.assests.repository.ExtraFieldNameRepository;
 import com.quantummaintenance.assests.repository.ExtraFieldsRepository;
+import com.quantummaintenance.assests.repository.MandatoryFieldsRepository;
+import com.quantummaintenance.assests.repository.ShowFieldsRepository;
 
 @Service
 public class AssetsServiceImpl implements AssetsService {
@@ -48,6 +53,12 @@ public class AssetsServiceImpl implements AssetsService {
 	
 	@Autowired
 	private CheckInOutRepository checkInOutRepository;
+	
+	@Autowired
+	private MandatoryFieldsRepository mandatoryFieldsRepository;
+	@Autowired
+	private ShowFieldsRepository showFieldsRepository;
+	
 	
 	 private ModelMapper modelMapper=new ModelMapper();
 	@Override
@@ -166,11 +177,11 @@ public class AssetsServiceImpl implements AssetsService {
 		return extraFieldNameListDTO;
 	}
 	@Override
-	public void addAssetExtraField(ExtraFieldNameDTO extraFieldNameDTO) throws Exception {
+	public void addAssetExtraField(ExtraFieldNameDTO extraFieldNameDTO) throws ExtraFieldAlreadyPresentException {
 		// TODO Auto-generated method stub
 		ExtraFieldName extraFieldNameNew=extraFieldNameRepository.findByName(extraFieldNameDTO.getName().toLowerCase());
 		if(extraFieldNameNew!=null) {
-			throw new Exception("Extra Field Already Present");
+			throw new ExtraFieldAlreadyPresentException("Extra Field Already Present");
 		}
 		extraFieldNameDTO.setName(extraFieldNameDTO.getName().toLowerCase());
 		
@@ -337,6 +348,78 @@ public class AssetsServiceImpl implements AssetsService {
 		assetFileRepository.deleteById(id);
 		
 	}
+	@Override
+	public void updateShowFields(ShowFields showFields) {
+		// TODO Auto-generated method stub
+		Optional<ShowFields> showFieldsOptional=showFieldsRepository.findByNameAndEmail(showFields.getName(),showFields.getEmail());
+		ShowFields myShowFields=new ShowFields();
+		if(showFieldsOptional.isPresent()) {
+			myShowFields=showFieldsOptional.get();
+			showFields.setId(myShowFields.getId());
+			
+		}
+		showFieldsRepository.save(showFields);
+		
+	}
+	@Override
+	public void updateMandatoryFields(MandatoryFields mandatoryFields) {
+		// TODO Auto-generated method stub
+		Optional<MandatoryFields> mandatoryFieldsOptional=mandatoryFieldsRepository.findByNameAndEmail(mandatoryFields.getName(),mandatoryFields.getEmail());
+		MandatoryFields myMandatoryFields=new MandatoryFields();
+		if(mandatoryFieldsOptional.isPresent()) {
+			myMandatoryFields=mandatoryFieldsOptional.get();
+			mandatoryFields.setId(myMandatoryFields.getId());
+			
+		}
+		mandatoryFieldsRepository.save(mandatoryFields);
+	}
+
+	@Override
+	public ShowFields getShowFields(String name, String email) {
+		// TODO Auto-generated method stub
+		Optional<ShowFields> showFieldsOptional=showFieldsRepository.findByNameAndEmail(name,email);
+		if(showFieldsOptional.isPresent()) {
+			return showFieldsOptional.get();
+			}
+			else {
+				return null;
+			}
+	}
+	@Override
+	public MandatoryFields getMandatoryFields(String name, String email) {
+		// TODO Auto-generated method stub
+		Optional<MandatoryFields> mandatoryFieldsOptional=mandatoryFieldsRepository.findByNameAndEmail(name,email);
+		if(mandatoryFieldsOptional.isPresent()) {
+		return mandatoryFieldsOptional.get();
+		}
+		else {
+			return null;
+		}
+	}
+	@Override
+	public List<ShowFields> getAllShowFields(String email) {
+		// TODO Auto-generated method stub
+		List<ShowFields> showFieldsList=showFieldsRepository.findByEmail(email);
+		return showFieldsList;
+	}
+	@Override
+	public List<MandatoryFields> getAllMandatoryFields(String email) {
+		// TODO Auto-generated method stub
+		List<MandatoryFields> mandatoryFieldsList=mandatoryFieldsRepository.findByEmail(email);
+		return mandatoryFieldsList;
+	}
+	@Override
+	public void deleteShowAndMandatoryFields(String email, String name) {
+		// TODO Auto-generated method stub
+		Optional<ShowFields> showFieldsOptional=showFieldsRepository.findByNameAndEmail(name, email);
+		showFieldsRepository.delete(showFieldsOptional.get());
+		Optional<MandatoryFields> mandatoryFieldsOptional=mandatoryFieldsRepository.findByNameAndEmail(name, email);
+		if(mandatoryFieldsOptional.isPresent()) {
+		mandatoryFieldsRepository.delete(mandatoryFieldsOptional.get());
+		}
+	}
+
+	
 
 	
 

@@ -5,16 +5,26 @@ import java.util.Optional;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.quantumai.customer.dto.AuthenticationRequestDTO;
+import com.quantumai.customer.dto.AuthenticationResponseDTO;
+import com.quantumai.customer.dto.BaseResponseDTO;
 import com.quantumai.customer.dto.CustomerDTO;
 import com.quantumai.customer.dto.CustomerSubscribedDTO;
+import com.quantumai.customer.entity.CompanyInformation;
 import com.quantumai.customer.entity.Customer;
 import com.quantumai.customer.entity.CustomerSubscribed;
+import com.quantumai.customer.entity.Role;
 import com.quantumai.customer.exception.NoSubscriptionError;
 import com.quantumai.customer.exception.UserAlreadyPresentException;
+import com.quantumai.customer.repository.CompanyInformationRepository;
 import com.quantumai.customer.repository.CustomerRepository;
 import com.quantumai.customer.repository.CustomerSubscribedRepository;
+import com.quantumai.customer.security.JwtService;
 
 @Service
 public class CustomerServiceImpl implements CustomerService {
@@ -24,12 +34,23 @@ public class CustomerServiceImpl implements CustomerService {
 	@Autowired
 	private CustomerSubscribedRepository customerSubscribedRepository;
 	
+	@Autowired
+	private CompanyInformationRepository companyInformationRepository;
+	
+	@Autowired JwtService jwtService;
+	
+	@Autowired
+	private AuthenticationManager authenticationManager;
+	
 	 
 	 private ModelMapper modelMapper=new ModelMapper();
+	 
+
 
 	@Override
-	public void addCustomer(CustomerDTO customerDTO) throws Exception {
+	public BaseResponseDTO addCustomer(CustomerDTO customerDTO) throws Exception {
 		// TODO Auto-generated method stub
+		System.out.print("---------------->Called");
 		if(customerDTO==null) {
 			throw new Exception("Empty User");
 		}
@@ -37,7 +58,15 @@ public class CustomerServiceImpl implements CustomerService {
 			throw new UserAlreadyPresentException("User Already Present");
 		}
 		Customer customer=modelMapper.map(customerDTO, Customer.class);
+		customer.setRole(Role.ADMIN);
+//		customer.setPassword(passwordEncoder.encode(customerDTO.getPassword()));
 		customerRepository.save(customer);
+		BaseResponseDTO baseResponseDTO=new BaseResponseDTO();
+		baseResponseDTO.setSucess(true);
+		baseResponseDTO.setMessage("User Successfully Created");
+		
+		
+		return baseResponseDTO;
 		
 	}
 
@@ -47,7 +76,9 @@ public class CustomerServiceImpl implements CustomerService {
 		if(email.isEmpty()) {
 			throw new Exception("Empty email");
 		}
-		return customerRepository.findByEmail(email);
+		Optional<Customer> customer=customerRepository.findByEmail(email);
+		CustomerDTO customerDTO=modelMapper.map(customer.get(), CustomerDTO.class);
+		return customerDTO;
 		
 	}
 
@@ -88,6 +119,58 @@ public class CustomerServiceImpl implements CustomerService {
 		}
 		
 		customerSubscribedRepository.save(customerSubscribed);
+	}
+
+	@Override
+	public AuthenticationResponseDTO authenticate(AuthenticationRequestDTO authenticationRequestDTO) throws Exception {
+		// TODO Auto-generated method stub
+		authenticationManager.authenticate(
+				new UsernamePasswordAuthenticationToken(authenticationRequestDTO.getEmail(),authenticationRequestDTO.getPassword())
+				);
+		var user=customerRepository.findByEmail(authenticationRequestDTO.getEmail()).orElseThrow(()->new Exception("Not Present"));
+		var jwtToken=jwtService.generateToken(user);
+		return AuthenticationResponseDTO.builder().token(jwtToken).build();
+	}
+
+	@Override
+	public AuthenticationResponseDTO getLoginToken(String email) {
+		// TODO Auto-generated method stub
+		Optional<Customer> customer=customerRepository.findByEmail(email);
+		System.out.print(customer);
+		var jwtToken=jwtService.generateToken(customer.get());
+		
+		return AuthenticationResponseDTO.builder().token(jwtToken).role(customer.get().getRole()).build();
+		
+	}
+
+	@Override
+	public void addCompanyInformation(CompanyInformation companyInformation) {
+		// TODO Auto-generated method stub
+		String email=companyInformation.getCustomerEmail();
+		Optional<CompanyInformation> myCompanyInformation=companyInformationRepository.findByCustomerEmail(email);
+		if(myCompanyInformation.isEmpty()) {
+			companyInformationRepository.save(companyInformation);
+		}
+		else {
+			companyInformation.setId(myCompanyInformation.get().getId());
+			companyInformationRepository.save(companyInformation);
+		}
+		
+		
+	}
+
+	@Override
+	public CompanyInformation getcompanyInformation(String email) {
+		// TODO Auto-generated method stub
+		
+		Optional<CompanyInformation> myCompanyInformation=companyInformationRepository.findByCustomerEmail(email);
+		if(myCompanyInformation.isEmpty()) {
+			return null;
+		}
+		else {
+			
+			return myCompanyInformation.get();
+		}
 	}
 
 }
