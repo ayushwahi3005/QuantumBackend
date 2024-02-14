@@ -14,4 +14,6 @@ public class MandatoryFields {
 	private String name;
 	private boolean mandatory;
 	private String email;
+	private String type;
+	private String companyId;
 }

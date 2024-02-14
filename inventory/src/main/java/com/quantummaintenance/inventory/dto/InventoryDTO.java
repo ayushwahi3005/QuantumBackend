@@ -12,4 +12,5 @@ public class InventoryDTO {
 	private Float cost;
 	private String category;
 	private Integer quantity;
+	private String companyId;
 }

@@ -22,6 +22,7 @@ public class Customer implements UserDetails {
 	private String email;
 	private String companyName;
 	private String mobileNumber;
+	private String password;
 	
 	
 //	@Enumerated
@@ -37,7 +38,7 @@ public class Customer implements UserDetails {
 	@Override
 	public String getPassword() {
 		// TODO Auto-generated method stub
-		return null;
+		return password;
 	}
 	@Override
 	public String getUsername() {

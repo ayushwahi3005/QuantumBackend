@@ -3,6 +3,7 @@ package com.quantumai.customer.service;
 import com.quantumai.customer.dto.AuthenticationRequestDTO;
 import com.quantumai.customer.dto.AuthenticationResponseDTO;
 import com.quantumai.customer.dto.BaseResponseDTO;
+import com.quantumai.customer.dto.CompanyIdDTO;
 import com.quantumai.customer.dto.CustomerDTO;
 import com.quantumai.customer.dto.CustomerSubscribedDTO;
 import com.quantumai.customer.entity.CompanyInformation;
@@ -18,5 +19,6 @@ public interface CustomerService {
 	public AuthenticationResponseDTO getLoginToken(String email);
 	public void addCompanyInformation(CompanyInformation companyInformation);
 	public CompanyInformation getcompanyInformation(String email);
+	public CompanyIdDTO getCompanyId(String email);
 
 }

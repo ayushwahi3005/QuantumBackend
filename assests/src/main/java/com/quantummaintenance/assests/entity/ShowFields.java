@@ -14,4 +14,6 @@ public class ShowFields {
 	private String name;
 	private boolean show;
 	private String email;
+	private String type;
+	private String companyId;
 }

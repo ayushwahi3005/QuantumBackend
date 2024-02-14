@@ -46,11 +46,11 @@ public class CustomerApplication {
 	            @Override
 	            public void addCorsMappings(CorsRegistry registry) {
 	            	registry.addMapping("/**")
-	                .allowedOrigins("http://localhost:4200")
+	                .allowedOrigins("**")
 //	                .allowedOrigins("**")
 	                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-	                .allowedHeaders("*", "Authorization")
-	                .exposedHeaders("Authorization")
+	                .allowedHeaders("*", "Authorization","Content-Type", "Date", "Total-Count", "loginInfo","jwt_token")
+                    .exposedHeaders("Content-Type", "Date", "Total-Count", "loginInfo", "jwt_token","Authorization")
 	                .allowCredentials(true)
 	                .maxAge(3600);
 	            }

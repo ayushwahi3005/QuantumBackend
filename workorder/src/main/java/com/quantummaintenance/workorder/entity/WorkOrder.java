@@ -2,6 +2,7 @@ package com.quantummaintenance.workorder.entity;
 
 import java.time.LocalDate;
 import java.util.Date;
+import java.util.Map;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -23,7 +24,8 @@ public class WorkOrder {
 	private String assetDetails;
 	private String assetId;
 	private LocalDate lastUpdate;
-	private String email;
+	private String companyId;
+//	private Map<String, ExtraFields> extraFields;
 	
 	
 }

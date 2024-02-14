@@ -13,4 +13,5 @@ public class ExtraFields {
 	private String value;
 	private String assetId;
 	private String type;
+	private String companyId;
 }

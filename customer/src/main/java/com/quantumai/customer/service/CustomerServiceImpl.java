@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.quantumai.customer.dto.AuthenticationRequestDTO;
 import com.quantumai.customer.dto.AuthenticationResponseDTO;
 import com.quantumai.customer.dto.BaseResponseDTO;
+import com.quantumai.customer.dto.CompanyIdDTO;
 import com.quantumai.customer.dto.CustomerDTO;
 import com.quantumai.customer.dto.CustomerSubscribedDTO;
 import com.quantumai.customer.entity.CompanyInformation;
@@ -45,6 +46,9 @@ public class CustomerServiceImpl implements CustomerService {
 	 
 	 private ModelMapper modelMapper=new ModelMapper();
 	 
+	 @Autowired
+	 private PasswordEncoder passwordEncoder;
+	 
 
 
 	@Override
@@ -59,7 +63,7 @@ public class CustomerServiceImpl implements CustomerService {
 		}
 		Customer customer=modelMapper.map(customerDTO, Customer.class);
 		customer.setRole(Role.ADMIN);
-//		customer.setPassword(passwordEncoder.encode(customerDTO.getPassword()));
+		customer.setPassword(passwordEncoder.encode(customerDTO.getPassword()));
 		customerRepository.save(customer);
 		BaseResponseDTO baseResponseDTO=new BaseResponseDTO();
 		baseResponseDTO.setSucess(true);
@@ -170,6 +174,22 @@ public class CustomerServiceImpl implements CustomerService {
 		else {
 			
 			return myCompanyInformation.get();
+		}
+	}
+
+	@Override
+	public CompanyIdDTO getCompanyId(String email) {
+		// TODO Auto-generated method stub
+		Optional<CompanyInformation> myCompanyInformation=companyInformationRepository.findByCustomerEmail(email);
+		if(myCompanyInformation.isEmpty()) {
+			return null;
+		}
+		else {
+			CompanyInformation companyInformation=myCompanyInformation.get();
+			CompanyIdDTO companyIdDTO=new CompanyIdDTO();
+			companyIdDTO.setCompanyName(companyInformation.getCompanyName());
+			companyIdDTO.setId(companyInformation.getId());
+			return companyIdDTO;
 		}
 	}
 

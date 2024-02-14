@@ -29,9 +29,9 @@ public class InventoryAPI {
 		inventoryService.addInventory(inventoryDTO);
 		return new ResponseEntity<>("Inventory Created",HttpStatus.ACCEPTED);
 	}
-	@GetMapping("/getAllInventory")
-	public ResponseEntity<List<InventoryDTO>> getAllInventory(){
-		List<InventoryDTO> inventoryDTOList=inventoryService.getAllInventory();
+	@GetMapping("/getAllInventory/{companyId}")
+	public ResponseEntity<List<InventoryDTO>> getAllInventory(@PathVariable String companyId){
+		List<InventoryDTO> inventoryDTOList=inventoryService.getAllInventory(companyId);
 		return new ResponseEntity<>(inventoryDTOList,HttpStatus.ACCEPTED);
 	}
 	@GetMapping("/getInventory/{id}")

@@ -8,7 +8,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import com.quantummaintenance.assests.entity.MandatoryFields;
 
 public interface MandatoryFieldsRepository extends MongoRepository<MandatoryFields,String> {
-	public Optional<MandatoryFields> findByNameAndEmail(String name,String email);
-	public List<MandatoryFields> findByEmail(String email);
+	public Optional<MandatoryFields> findByNameAndCompanyId(String name,String companyId);
+	public List<MandatoryFields> findByCompanyId(String companyId);
 
 }

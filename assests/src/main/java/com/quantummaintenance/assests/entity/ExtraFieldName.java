@@ -14,4 +14,5 @@ public class ExtraFieldName {
 	private String name;
 	private String type;
 	private String email;
+	private String companyId;
 }

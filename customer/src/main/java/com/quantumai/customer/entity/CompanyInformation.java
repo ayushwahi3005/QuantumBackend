@@ -14,7 +14,7 @@ public class CompanyInformation {
 	private String customerEmail;
 	private String companyName;
 	private String comapanyLogo;
-	private String accountId;
+//	private String accountId;
 	private String address1;
 	private String address2;
 	private String city;

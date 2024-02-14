@@ -28,12 +28,14 @@ import com.quantummaintenance.assests.entity.ExtraFieldName;
 import com.quantummaintenance.assests.entity.ExtraFields;
 import com.quantummaintenance.assests.entity.MandatoryFields;
 import com.quantummaintenance.assests.entity.ShowFields;
+import com.quantummaintenance.assests.entity.IdTable;
 import com.quantummaintenance.assests.exception.ExtraFieldAlreadyPresentException;
 import com.quantummaintenance.assests.repository.AssetFileRepository;
 import com.quantummaintenance.assests.repository.AssetsRepository;
 import com.quantummaintenance.assests.repository.CheckInOutRepository;
 import com.quantummaintenance.assests.repository.ExtraFieldNameRepository;
 import com.quantummaintenance.assests.repository.ExtraFieldsRepository;
+import com.quantummaintenance.assests.repository.IdTableRepository;
 import com.quantummaintenance.assests.repository.MandatoryFieldsRepository;
 import com.quantummaintenance.assests.repository.ShowFieldsRepository;
 
@@ -59,12 +61,15 @@ public class AssetsServiceImpl implements AssetsService {
 	@Autowired
 	private ShowFieldsRepository showFieldsRepository;
 	
+	@Autowired
+	private IdTableRepository idTableRepository;
+	
 	
 	 private ModelMapper modelMapper=new ModelMapper();
 	@Override
-	public List<AssetsDTO> getAssetsDetails(String email) {
+	public List<AssetsDTO> getAssetsDetails(String companyId) {
 		// TODO Auto-generated method stub
-		List<Assets> assetsList=assetsRepository.findByEmail(email);
+		List<Assets> assetsList=assetsRepository.findByCompanyId(companyId);
 		List<AssetsDTO> assetsDTOList=new ArrayList<AssetsDTO>();
 		assetsList.stream().forEach(x->{
 			AssetsDTO assetsDTO=modelMapper.map(x, AssetsDTO.class);
@@ -73,19 +78,62 @@ public class AssetsServiceImpl implements AssetsService {
 		return assetsDTOList;
 	}
 	@Override
-	public void addAssets(AssetsDTO assetsDTO) {
+	public AssetsDTO addAssets(AssetsDTO assetsDTO) {
 		// TODO Auto-generated method stub
 		Assets assets=modelMapper.map(assetsDTO, Assets.class);
-		assetsRepository.save(assets);
+		if(assets.getAssetId()==null) {
+			Optional<IdTable> optionalIdTable=idTableRepository.findByCompanyId(assetsDTO.getCompanyId());
+			if(optionalIdTable.isEmpty()) {
+				assets.setAssetId(1);
+				IdTable myidTable=new IdTable();
+				myidTable.setTableId(2);
+				myidTable.setCompanyId(assetsDTO.getCompanyId());
+//				System.out.println("---------------------new---------->"+idTable.getTableId());
+				idTableRepository.save(myidTable);
+			}
+			else {
+//				List<IdTable> idTableList=idTableRepository.findAll();
+//				IdTable idTable=idTableList.get(0);
+				IdTable idTable=optionalIdTable.get();
+				assets.setAssetId(idTable.getTableId());
+				idTable.updateId();
+//				System.out.println("---------------------already---------->"+idTable.getTableId()+" "+idTable.get);
+				idTableRepository.save(idTable);
+			}
+		}
+
+		
+		AssetsDTO myAssetsDTO=modelMapper.map(assetsRepository.save(assets),AssetsDTO.class);
+		return myAssetsDTO;
 		
 	}
 	@Override
-	public void importExcel(List<AssetsDTO> assetsDTOList) {
+	public void importExcel(List<AssetsDTO> assetsDTOList,Map<String,String> columnMap) {
 		// TODO Auto-generated method stub
 		
+		if(assetsDTOList.isEmpty()) {
+			return;
+		}
+		Optional<IdTable> optionalIdTable=idTableRepository.findByCompanyId(assetsDTOList.get(0).getCompanyId());
 		assetsDTOList.stream().forEach(x->{
 			
 			Assets assets=modelMapper.map(x, Assets.class);
+			if(optionalIdTable.isEmpty()) {
+				assets.setAssetId(1);
+				IdTable myidTable=new IdTable();
+				myidTable.setTableId(2);
+				myidTable.setCompanyId(assetsDTOList.get(0).getCompanyId());
+//				System.out.println("---------------------new---------->"+idTable.getTableId());
+				idTableRepository.save(myidTable);
+			}
+			else {
+			
+			IdTable myidTable=optionalIdTable.get();
+			assets.setAssetId(myidTable.getTableId());
+			myidTable.updateId();
+			idTableRepository.save(myidTable);
+			
+			}
 			assetsRepository.save(assets);
 		});
 		
@@ -166,9 +214,9 @@ public class AssetsServiceImpl implements AssetsService {
 		
 	}
 	@Override
-	public List<ExtraFieldNameDTO> getAssetExtraField(String email) {
+	public List<ExtraFieldNameDTO> getAssetExtraField(String companyId) {
 		// TODO Auto-generated method stub
-		List<ExtraFieldName> extraFieldNameList=extraFieldNameRepository.findAll();
+		List<ExtraFieldName> extraFieldNameList=extraFieldNameRepository.findByCompanyId(companyId);
 		List<ExtraFieldNameDTO> extraFieldNameListDTO=new ArrayList<>();
 		extraFieldNameList.stream().forEach((x)->{
 			ExtraFieldNameDTO extraFieldNameDTO=modelMapper.map(x, ExtraFieldNameDTO.class);
@@ -179,7 +227,7 @@ public class AssetsServiceImpl implements AssetsService {
 	@Override
 	public void addAssetExtraField(ExtraFieldNameDTO extraFieldNameDTO) throws ExtraFieldAlreadyPresentException {
 		// TODO Auto-generated method stub
-		ExtraFieldName extraFieldNameNew=extraFieldNameRepository.findByName(extraFieldNameDTO.getName().toLowerCase());
+		ExtraFieldName extraFieldNameNew=extraFieldNameRepository.findByNameAndCompanyId(extraFieldNameDTO.getName().toLowerCase(),extraFieldNameDTO.getCompanyId());
 		if(extraFieldNameNew!=null) {
 			throw new ExtraFieldAlreadyPresentException("Extra Field Already Present");
 		}
@@ -207,10 +255,10 @@ public class AssetsServiceImpl implements AssetsService {
 		
 	}
 	@Override
-	public Map<String, Map<String,String>> getextraFieldList(String email) {
+	public Map<String, Map<String,String>> getextraFieldList(String companyId) {
 		// TODO Auto-generated method stub
-		List<ExtraFields> extraFieldNameList=extraFieldsRepository.findByEmail(email);
-		List<Assets> assetList=assetsRepository.findByEmail(email);
+		List<ExtraFields> extraFieldNameList=extraFieldsRepository.findByCompanyId(companyId);
+		List<Assets> assetList=assetsRepository.findByCompanyId(companyId);
 		Map<String, Map<String,String>> fieldNameValueMap=new HashMap<>();
 		
 		assetList.stream().forEach((asset)->{
@@ -351,7 +399,7 @@ public class AssetsServiceImpl implements AssetsService {
 	@Override
 	public void updateShowFields(ShowFields showFields) {
 		// TODO Auto-generated method stub
-		Optional<ShowFields> showFieldsOptional=showFieldsRepository.findByNameAndEmail(showFields.getName(),showFields.getEmail());
+		Optional<ShowFields> showFieldsOptional=showFieldsRepository.findByNameAndCompanyId(showFields.getName(),showFields.getCompanyId());
 		ShowFields myShowFields=new ShowFields();
 		if(showFieldsOptional.isPresent()) {
 			myShowFields=showFieldsOptional.get();
@@ -364,7 +412,7 @@ public class AssetsServiceImpl implements AssetsService {
 	@Override
 	public void updateMandatoryFields(MandatoryFields mandatoryFields) {
 		// TODO Auto-generated method stub
-		Optional<MandatoryFields> mandatoryFieldsOptional=mandatoryFieldsRepository.findByNameAndEmail(mandatoryFields.getName(),mandatoryFields.getEmail());
+		Optional<MandatoryFields> mandatoryFieldsOptional=mandatoryFieldsRepository.findByNameAndCompanyId(mandatoryFields.getName(),mandatoryFields.getCompanyId());
 		MandatoryFields myMandatoryFields=new MandatoryFields();
 		if(mandatoryFieldsOptional.isPresent()) {
 			myMandatoryFields=mandatoryFieldsOptional.get();
@@ -375,9 +423,9 @@ public class AssetsServiceImpl implements AssetsService {
 	}
 
 	@Override
-	public ShowFields getShowFields(String name, String email) {
+	public ShowFields getShowFields(String name, String companyId) {
 		// TODO Auto-generated method stub
-		Optional<ShowFields> showFieldsOptional=showFieldsRepository.findByNameAndEmail(name,email);
+		Optional<ShowFields> showFieldsOptional=showFieldsRepository.findByNameAndCompanyId(name,companyId);
 		if(showFieldsOptional.isPresent()) {
 			return showFieldsOptional.get();
 			}
@@ -386,9 +434,9 @@ public class AssetsServiceImpl implements AssetsService {
 			}
 	}
 	@Override
-	public MandatoryFields getMandatoryFields(String name, String email) {
+	public MandatoryFields getMandatoryFields(String name, String companyId) {
 		// TODO Auto-generated method stub
-		Optional<MandatoryFields> mandatoryFieldsOptional=mandatoryFieldsRepository.findByNameAndEmail(name,email);
+		Optional<MandatoryFields> mandatoryFieldsOptional=mandatoryFieldsRepository.findByNameAndCompanyId(name,companyId);
 		if(mandatoryFieldsOptional.isPresent()) {
 		return mandatoryFieldsOptional.get();
 		}
@@ -397,26 +445,46 @@ public class AssetsServiceImpl implements AssetsService {
 		}
 	}
 	@Override
-	public List<ShowFields> getAllShowFields(String email) {
+	public List<ShowFields> getAllShowFields(String companyId) {
 		// TODO Auto-generated method stub
-		List<ShowFields> showFieldsList=showFieldsRepository.findByEmail(email);
+		List<ShowFields> showFieldsList=showFieldsRepository.findByCompanyId(companyId);
 		return showFieldsList;
 	}
 	@Override
-	public List<MandatoryFields> getAllMandatoryFields(String email) {
+	public List<MandatoryFields> getAllMandatoryFields(String companyId) {
 		// TODO Auto-generated method stub
-		List<MandatoryFields> mandatoryFieldsList=mandatoryFieldsRepository.findByEmail(email);
+		List<MandatoryFields> mandatoryFieldsList=mandatoryFieldsRepository.findByCompanyId(companyId);
 		return mandatoryFieldsList;
 	}
 	@Override
-	public void deleteShowAndMandatoryFields(String email, String name) {
+	public void deleteShowAndMandatoryFields(String companyId, String name) {
 		// TODO Auto-generated method stub
-		Optional<ShowFields> showFieldsOptional=showFieldsRepository.findByNameAndEmail(name, email);
+		Optional<ShowFields> showFieldsOptional=showFieldsRepository.findByNameAndCompanyId(name, companyId);
 		showFieldsRepository.delete(showFieldsOptional.get());
-		Optional<MandatoryFields> mandatoryFieldsOptional=mandatoryFieldsRepository.findByNameAndEmail(name, email);
+		Optional<MandatoryFields> mandatoryFieldsOptional=mandatoryFieldsRepository.findByNameAndCompanyId(name, companyId);
 		if(mandatoryFieldsOptional.isPresent()) {
 		mandatoryFieldsRepository.delete(mandatoryFieldsOptional.get());
 		}
+	}
+	@Override
+	public void updateAssetWithFile(List<AssetsDTO> assetsDTOList,String companyId) {
+		// TODO Auto-generated method stub
+		
+		
+		
+		
+		
+		assetsDTOList.stream().forEach((x)->{
+			System.out.println("------------------------->>>"+x.getAssetId());
+			Assets assets=assetsRepository.findByAssetIdAndCompanyId(x.getAssetId(),companyId);
+			x.setId(assets.getId());
+			x.setImage(assets.getImage());
+			
+			
+			Assets myasset=modelMapper.map(x, Assets.class);
+			assetsRepository.save(myasset);
+		});
+		
 	}
 
 	

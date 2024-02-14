@@ -8,7 +8,8 @@ import com.quantummaintenance.assests.entity.ExtraFields;
 
 public interface ExtraFieldsRepository extends MongoRepository<ExtraFields,String> {
 	public List<ExtraFields>findByAssetId(String assetId);
-	public List<ExtraFields> findByEmail(String email);
+	public List<ExtraFields> findByCompanyId(String companyId);
 	public List<ExtraFields> findByName(String name);
+	public ExtraFields findByNameAndAssetId(String name,String assetId);
 
 }

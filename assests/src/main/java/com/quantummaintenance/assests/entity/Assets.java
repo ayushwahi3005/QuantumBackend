@@ -1,5 +1,6 @@
 package com.quantummaintenance.assests.entity;
 
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -9,9 +10,10 @@ import lombok.Data;
 @Data
 public class Assets {
 	
-	private String email;
 	@Id
 	private String id;
+	private String email;
+	private Integer assetId;
 	private String name;
 	private String serialNumber;
 	private String category;
@@ -19,4 +21,5 @@ public class Assets {
 	private String location;
 	private String status;
 	private String image;
+	private String companyId;
 }

@@ -27,10 +27,10 @@ public class InventoryServiceImpl implements InventoryService {
 		
 	}
 	@Override
-	public List<InventoryDTO> getAllInventory() {
+	public List<InventoryDTO> getAllInventory(String companyId) {
 		// TODO Auto-generated method stub
 		List<InventoryDTO> inventoryListDTO=new ArrayList<>();
-		List<Inventory> inventoryList=inventoryRepository.findAll();
+		List<Inventory> inventoryList=inventoryRepository.findByCompanyId(companyId);
 		inventoryList.stream().forEach((x)->{
 			InventoryDTO inventoryDTO=modelMapper.map(x, InventoryDTO.class);
 			inventoryListDTO.add(inventoryDTO);

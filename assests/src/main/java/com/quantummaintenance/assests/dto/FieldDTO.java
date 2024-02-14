@@ -7,4 +7,5 @@ public class FieldDTO {
 
 	private String name;
 	private String email;
+	private String companyId;
 }

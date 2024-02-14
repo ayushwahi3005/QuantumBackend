@@ -6,7 +6,7 @@ import lombok.Data;
 public class AssetsDTO {
 
 	private String email;
-	
+	private Integer assetId;
 	private String id;
 	private String name;
 	private String serialNumber;
@@ -15,4 +15,5 @@ public class AssetsDTO {
 	private String location;
 	private String status;
 	private String image;
+	private String companyId;
 }

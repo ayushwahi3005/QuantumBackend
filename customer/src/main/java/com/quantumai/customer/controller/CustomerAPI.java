@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.quantumai.customer.dto.AuthenticationRequestDTO;
 import com.quantumai.customer.dto.AuthenticationResponseDTO;
 import com.quantumai.customer.dto.BaseResponseDTO;
+import com.quantumai.customer.dto.CompanyIdDTO;
 import com.quantumai.customer.dto.CustomerDTO;
 import com.quantumai.customer.dto.CustomerSubscribedDTO;
 import com.quantumai.customer.entity.CompanyInformation;
@@ -63,10 +64,21 @@ public class CustomerAPI {
 		
 		return ResponseEntity.ok(companyInformation);
 	}
+	@PostMapping(value="/updateCompanyInformation")
+	public ResponseEntity<CompanyInformation> updateCompanyInformation(@RequestBody CompanyInformation companyInformation) throws Exception{
+		customerService.addCompanyInformation(companyInformation);
+		
+		
+		return ResponseEntity.ok(companyInformation);
+	}
 	
 	@GetMapping(value="/getCompanyInformation/{email}")
 	public ResponseEntity<CompanyInformation> getCompanyInformation(@PathVariable String email ) throws Exception {
 		return ResponseEntity.ok(customerService.getcompanyInformation(email));
+	}
+	@GetMapping(value="/getCompanyId/{email}")
+	public ResponseEntity<CompanyIdDTO> getCompanyId(@PathVariable String email ) throws Exception {
+		return ResponseEntity.ok(customerService.getCompanyId(email));
 	}
 	
 	
