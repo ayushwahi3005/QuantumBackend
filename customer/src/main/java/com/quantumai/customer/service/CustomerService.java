@@ -20,5 +20,6 @@ public interface CustomerService {
 	public void addCompanyInformation(CompanyInformation companyInformation);
 	public CompanyInformation getcompanyInformation(String email);
 	public CompanyIdDTO getCompanyId(String email);
+	public BaseResponseDTO addUsers(CustomerDTO customerDTO);
 
 }

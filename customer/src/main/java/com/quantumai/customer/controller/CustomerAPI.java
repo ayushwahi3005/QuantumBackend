@@ -80,6 +80,12 @@ public class CustomerAPI {
 	public ResponseEntity<CompanyIdDTO> getCompanyId(@PathVariable String email ) throws Exception {
 		return ResponseEntity.ok(customerService.getCompanyId(email));
 	}
+	@PostMapping(value="/addUser")
+	public ResponseEntity<BaseResponseDTO> addUser(@RequestBody CustomerDTO customerDTO) throws Exception{
+		
+		
+		return  ResponseEntity.ok(customerService.addUsers(customerDTO));
+	}
 	
 	
 }

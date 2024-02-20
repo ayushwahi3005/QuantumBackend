@@ -1,6 +1,7 @@
 package com.quantummaintenance.users.service;
 import java.security.Key;
 import java.util.List;
+import java.util.Optional;
 import java.util.ArrayList;
 
 import org.modelmapper.ModelMapper;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.quantummaintenance.users.dto.AuthenticationResponseDTO;
@@ -21,6 +23,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
 import com.quantummaintenance.users.entity.*;
+import com.quantummaintenance.users.exception.UserException;
 import com.quantummaintenance.users.repository.UsersRepository;
 @Service
 public class UserServiceImpl implements UserService{
@@ -28,6 +31,10 @@ public class UserServiceImpl implements UserService{
 	@Autowired
 	private JavaMailSender emailSender;
 	@Autowired JwtService jwtService;
+	
+	@Autowired
+	private PasswordEncoder passwordEncoder ;
+	
 	
 	private ModelMapper modelMapper=new ModelMapper();
 
@@ -75,6 +82,45 @@ public class UserServiceImpl implements UserService{
 	public List<UsersDTO> getAllUsers(String companyId) {
 		// TODO Auto-generated method stub
 		List<Users> usersList=usersRepository.findByCompanyId(companyId);
+		List<UsersDTO> usersListDTO=new ArrayList<>();
+		usersList.stream().forEach((user)->{
+			UsersDTO usersDTO=modelMapper.map(user, UsersDTO.class);
+			usersListDTO.add(usersDTO);
+		});
+		return usersListDTO;
+	}
+
+
+	@Override
+	public void registerUser(Users user) throws UserException {
+		// TODO Auto-generated method stub
+		Optional<Users> OptionalUser=usersRepository.findByCompanyIdAndEmail(user.getCompanyId(), user.getEmail());
+		if(OptionalUser.isEmpty()) {
+			usersRepository.save(user);
+		}
+		else {
+			throw  new UserException("User already Invited");
+		}
+			
+	
+		
+		
+	}
+
+
+	@Override
+	public UsersDTO getUsers(String companyId, String email) {
+		// TODO Auto-generated method stub
+		Optional<Users> Optionaluser=usersRepository.findByCompanyIdAndEmail(companyId, email);
+		UsersDTO usersDTO=modelMapper.map(Optionaluser.get(), UsersDTO.class);
+		return usersDTO;
+	}
+
+
+	@Override
+	public List<UsersDTO> getAllUsersByRole(String role,String companyId) {
+		// TODO Auto-generated method stub
+		List<Users> usersList=usersRepository.findByRoleEndingWithAndCompanyId(role, companyId);
 		List<UsersDTO> usersListDTO=new ArrayList<>();
 		usersList.stream().forEach((user)->{
 			UsersDTO usersDTO=modelMapper.map(user, UsersDTO.class);

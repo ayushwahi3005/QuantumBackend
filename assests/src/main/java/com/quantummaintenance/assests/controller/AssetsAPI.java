@@ -3,6 +3,7 @@ package com.quantummaintenance.assests.controller;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.HashMap;
 import java.util.ArrayList;
 
@@ -229,6 +230,7 @@ public class AssetsAPI {
 	            		   extraFieldsDTO.setName(x.getName());
 	            		   extraFieldsDTO.setType(x.getType());
 	            		   extraFieldsDTO.setValue(value);
+	            		   extraFieldsDTO.setCompanyId(companyId);
 	            		   extraFieldsRepository.save(extraFieldsDTO);
 	            	   }
 	               });
@@ -393,13 +395,24 @@ public class AssetsAPI {
 		               listExtraFieldName.stream().forEach((x)->{
 		            	   if(columnMap.get(field).toLowerCase().equals(x.getName().toLowerCase())) {
 		            		   ExtraFields extraFieldsDTO=new ExtraFields(); 
-		            		   ExtraFields extraFields=extraFieldsRepository.findByNameAndAssetId(x.getName(), id);
-		            		   extraFieldsDTO.setId(extraFields.getId());
+		            		   Optional<ExtraFields> extraFieldsOptional=extraFieldsRepository.findByNameAndAssetId(x.getName(), id);
+		            		   if(extraFieldsOptional.isPresent()) {
+		            		   extraFieldsDTO.setId(extraFieldsOptional.get().getId());
 		            		   extraFieldsDTO.setAssetId(id);
 		            		   extraFieldsDTO.setName(x.getName());
 		            		   extraFieldsDTO.setType(x.getType());
 		            		   extraFieldsDTO.setValue(value);
+		            		   extraFieldsDTO.setCompanyId(companyId);
 		            		   extraFieldsRepository.save(extraFieldsDTO);
+		            		   }
+		            		   else {
+		            			   extraFieldsDTO.setAssetId(id);
+			            		   extraFieldsDTO.setName(x.getName());
+			            		   extraFieldsDTO.setType(x.getType());
+			            		   extraFieldsDTO.setValue(value);
+			            		   extraFieldsDTO.setCompanyId(companyId);
+			            		   extraFieldsRepository.save(extraFieldsDTO);
+		            		   }
 		            	   }
 		               });  
 	            

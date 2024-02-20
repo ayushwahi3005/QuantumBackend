@@ -1,6 +1,7 @@
 package com.quantummaintenance.assests.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
@@ -10,6 +11,6 @@ public interface ExtraFieldsRepository extends MongoRepository<ExtraFields,Strin
 	public List<ExtraFields>findByAssetId(String assetId);
 	public List<ExtraFields> findByCompanyId(String companyId);
 	public List<ExtraFields> findByName(String name);
-	public ExtraFields findByNameAndAssetId(String name,String assetId);
+	public Optional<ExtraFields> findByNameAndAssetId(String name,String assetId);
 
 }

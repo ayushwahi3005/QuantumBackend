@@ -180,17 +180,32 @@ public class CustomerServiceImpl implements CustomerService {
 	@Override
 	public CompanyIdDTO getCompanyId(String email) {
 		// TODO Auto-generated method stub
-		Optional<CompanyInformation> myCompanyInformation=companyInformationRepository.findByCustomerEmail(email);
+		Optional<Customer> myCompanyInformation=customerRepository.findByEmail(email);
 		if(myCompanyInformation.isEmpty()) {
 			return null;
 		}
 		else {
-			CompanyInformation companyInformation=myCompanyInformation.get();
+			Customer companyInformation=myCompanyInformation.get();
 			CompanyIdDTO companyIdDTO=new CompanyIdDTO();
 			companyIdDTO.setCompanyName(companyInformation.getCompanyName());
-			companyIdDTO.setId(companyInformation.getId());
+			companyIdDTO.setId(companyInformation.getCompanyId());
 			return companyIdDTO;
 		}
+	}
+
+	@Override
+	public BaseResponseDTO addUsers(CustomerDTO customerDTO) {
+		// TODO Auto-generated method stub
+		Customer customer=modelMapper.map(customerDTO, Customer.class);
+
+		customer.setPassword(passwordEncoder.encode(customerDTO.getPassword()));
+		customerRepository.save(customer);
+		BaseResponseDTO baseResponseDTO=new BaseResponseDTO();
+		baseResponseDTO.setSucess(true);
+		baseResponseDTO.setMessage("User Successfully Created");
+		
+		
+		return baseResponseDTO;
 	}
 
 }

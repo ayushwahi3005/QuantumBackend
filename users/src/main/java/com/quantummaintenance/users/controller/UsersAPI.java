@@ -21,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.quantummaintenance.users.dto.*;
 import com.quantummaintenance.users.entity.*;
+import com.quantummaintenance.users.exception.UserException;
 import com.quantummaintenance.users.repository.UsersRepository;
 import com.quantummaintenance.users.service.UserService;
 
@@ -40,10 +41,18 @@ private RestTemplate restTemplate=new RestTemplate();
 	@Autowired
     private UserService userService;
 	
-	 
+//	@Autowired
 //	 private PasswordEncoder passwordEncoder;
 	
 	@Autowired private UsersRepository usersRepository;
+	
+	@PostMapping("/registerUser")
+	public void register(@RequestBody Users users) throws UserException{
+		
+		userService.registerUser(users);
+		
+	}
+	
 
 	@PostMapping("/send/{companyId}")
     public void sendEmail(@PathVariable String companyId,@RequestBody Mail mail) {
@@ -68,20 +77,20 @@ private RestTemplate restTemplate=new RestTemplate();
         return ResponseEntity.ok(customer);
 	
 	}
-	@PostMapping(value="/invite/{companyId}/{details}")
-	public void getInviteDetails(@PathVariable String companyId,@PathVariable String details,@RequestBody UsersDTO userDTO){
-		Claims myDetails=userService.decodeDetails(details);
+	@PostMapping(value="/invite")
+	public void getInviteDetails(@RequestBody UsersDTO userDTO) throws UserException{
+//		Claims myDetails=userService.decodeDetails(details);
 		System.out.println(userDTO);
 		Users user=modelMapper.map(userDTO, Users.class);
 //		user.setPassword(passwordEncoder.encode(user.getPassword()));
-		user.setCompanyId(companyId);
-		if(myDetails.get("role").equals("ADMIN")) {
-			user.setRole(Role.ADMIN);
-		}
-		else if(myDetails.get("role").equals("TECHNICAL")) {
-			user.setRole(Role.TECHNICAL);
-		}
-		usersRepository.save(user);
+//		user.setCompanyId(companyId);
+//		if(myDetails.get("role").equals("ADMIN")) {
+//			user.setRole(Role.ADMIN);
+//		}s
+//		else if(myDetails.get("role").equals("TECHNICAL")) {
+//			user.setRole(Role.TECHNICAL);
+//		}
+		userService.registerUser(user);
 	
 	}
 	
@@ -89,6 +98,20 @@ private RestTemplate restTemplate=new RestTemplate();
 	public ResponseEntity<List<UsersDTO>> getAllUsers(@PathVariable String companyId){
 		List<UsersDTO> userList=userService.getAllUsers(companyId);
 		return ResponseEntity.ok(userList);
+	
+	}
+	@GetMapping(value="/invite/getUser/{companyId}/{details}")
+	public ResponseEntity<UsersDTO> getUsers(@PathVariable String companyId,@PathVariable String details){
+		Claims myDetails=userService.decodeDetails(details);
+		UsersDTO user=userService.getUsers(companyId,myDetails.get("email").toString());
+		return ResponseEntity.ok(user);
+	
+	}
+	@GetMapping(value="/getTechnicalUser/{companyId}")
+	public ResponseEntity<List<UsersDTO>> getTechnicalUser(@PathVariable String companyId){
+		
+		List<UsersDTO> userDTOList=userService.getAllUsersByRole("TECHNICAL", companyId);
+		return ResponseEntity.ok(userDTOList);
 	
 	}
 }

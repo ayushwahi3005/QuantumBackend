@@ -12,6 +12,7 @@ public class CustomerDTO {
 	private String companyName;
 	private String mobileNumber;
 	private String password;
+	private String companyId;
 	private Role role;
 	
 	
