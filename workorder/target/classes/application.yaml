@@ -1,0 +1,14 @@
+server:
+  port: 8083
+application:
+  security:
+    jwt:
+      secret-key: 9a8yxfpo15vRQ30k2kGHCHanStQ8vVrcocxvwFPVG7CMLOt5JfNb0toxK45hcWfF
+      expiration: 86400000 # a day
+      refresh-token:
+        expiration: 604800000 # 7 days
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
