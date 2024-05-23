@@ -10,6 +10,7 @@ import lombok.Data;
 public class Inventory {
 	@Id
 	private String id;
+	private Integer inventoryId;
 	private String partId;
 	private String partImage;
 	private String partName;

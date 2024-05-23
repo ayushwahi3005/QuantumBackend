@@ -7,7 +7,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.Set;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,15 +17,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.quantummaintenance.assests.dto.AssetFileDTO;
-import com.quantummaintenance.assests.dto.AssetImageDTO;
-import com.quantummaintenance.assests.dto.AssetsDTO;
-import com.quantummaintenance.assests.dto.CheckInDTO;
-import com.quantummaintenance.assests.dto.CheckInOutDTO;
-import com.quantummaintenance.assests.dto.ExtraFieldNameDTO;
-import com.quantummaintenance.assests.dto.ExtraFieldsDTO;
+import com.quantummaintenance.assests.dto.*;
+
 import com.quantummaintenance.assests.entity.AssetFile;
 import com.quantummaintenance.assests.entity.Assets;
 import com.quantummaintenance.assests.entity.CheckInOut;
@@ -519,7 +518,7 @@ public class AssetsServiceImpl implements AssetsService {
 		return null;
 	}
 	@Override
-	public List<String> getAllAssetDetails(String companyId) {
+	public PaginatedResultDTO<String> getAllAssetDetails(String companyId) {
 		// TODO Auto-generated method stub
 		List<ExtraFieldName> extraFieldNameList=extraFieldNameRepository.findByCompanyId(companyId);
 
@@ -575,7 +574,8 @@ public class AssetsServiceImpl implements AssetsService {
 		});
 		
 
-		return mapList;
+		
+		 return new PaginatedResultDTO<>(mapList, mapList.size());
 	}
 	@Override
 	public List<String> sortAssets(String companyId, String field) {
@@ -585,9 +585,9 @@ public class AssetsServiceImpl implements AssetsService {
 		// TODO Auto-generated method stub
 //		String type= extraFieldName.getType();
 		List<Map<String,String> > mapList=new ArrayList<>();
-		List<String> myList=getAllAssetDetails(companyId);
+		PaginatedResultDTO<String> myList=getAllAssetDetails(companyId);
 		ObjectMapper objectMapper = new ObjectMapper();
-		myList.stream().forEach((asset)->{
+		myList.getData().stream().forEach((asset)->{
 			Map<String,String> m=new HashMap<>();
 			 try {
 		            // Convert JSON string to Map<String, String>
@@ -637,9 +637,9 @@ public class AssetsServiceImpl implements AssetsService {
 	public List<String> searchedAssets(String companyId, String data, String field) {
 		// TODO Auto-generated method stub
 		List<Map<String,String> > mapList=new ArrayList<>();
-		List<String> myList=getAllAssetDetails(companyId);
+		PaginatedResultDTO<String> myList=getAllAssetDetails(companyId);
 		ObjectMapper objectMapper = new ObjectMapper();
-		myList.stream().forEach((asset)->{
+		myList.getData().stream().forEach((asset)->{
 			Map<String,String> m=new HashMap<>();
 			 try {
 		            // Convert JSON string to Map<String, String>
@@ -709,6 +709,124 @@ public class AssetsServiceImpl implements AssetsService {
 		
 		
 	}
+	@Override
+	public PaginatedResultDTO<String> advanceFilter(Object filter, int pageNumber, int pageSize) {
+		// TODO Auto-generated method stub
+		 List<String> filteredAssetsWithAllFields=new ArrayList<>();
+		 long totalPage=0;
+		System.out.println("----filter--->"+filter);
+		 if (filter instanceof Map) {
+	            // Cast the filter to a Map
+	            Map<?, ?> filterMap = (Map<?, ?>) filter;
+	            
+	            // Get all keys
+	            Set<?> keys = filterMap.keySet();
+	            Map<String,String> mapping=new HashMap<String,String>();
+	            
+	            // Print keys or do something with them
+	            
+	            for (Map.Entry<?, ?> entry : filterMap.entrySet()) {
+	                Object key = entry.getKey();
+	                Object value = entry.getValue();
+//	                System.out.println("Key: " + key + ", Value: " + value);
+	                if(value!=null) { mapping.put(key.toString(), value.toString());}
+	               
+	            }
+	            PaginatedResultDTO<String> assetsWithAllFields=getAllAssetDetails(mapping.get("companyId"));
+	           
+//	            assetsWithAllFields.stream().forEach(data->{
+//	            	ObjectMapper mapper = new ObjectMapper();
+//	            	int flag=1;
+//	            	try {
+//						Map<String,String> map = mapper.readValue(data, Map.class);
+//						for (Map.Entry<?, ?> entry : filterMap.entrySet()) {
+//			                Object key = entry.getKey();
+//			                Object value = entry.getValue();
+////			                System.out.println("Key: " + key + ", Value: " + value);
+//			                if(value!=null) { 
+//				                mapping.put(key.toString(), value.toString());
+//				                String myValue=map.get(key);
+//				                String expectedValue=value.toString();
+//				                String keyString=key.toString();
+//				                if((keyString.equals("companyId")==false)&& myValue!=null&&value!=null&&value.toString()!="") {
+//				                	myValue=myValue.toLowerCase();
+//				                	 System.out.println("Key: " + key + ", Value: " + value);
+//				                	 if(myValue.contains(expectedValue.toLowerCase())==false&&myValue.equals(expectedValue.toLowerCase())==false) flag=0;
+//				                	
+//				                }
+//			                }
+//			               
+//			               
+//			            }
+//						
+//						if(flag==1) {
+//							filteredAssetsWithAllFields.add(data);
+//						}
+//						
+//					} catch (JsonMappingException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					} catch (JsonProcessingException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
+//	            	System.out.println("----------");
+//                });
+	            
+	            
+	            filteredAssetsWithAllFields = assetsWithAllFields.getData().stream().filter(data -> {
+	                ObjectMapper mapper = new ObjectMapper();
+	                int flag = 1;
+	                try {
+	                    Map<String, String> map = mapper.readValue(data, Map.class);
+	                    for (Map.Entry<?, ?> entry : filterMap.entrySet()) {
+	                        Object key = entry.getKey();
+	                        Object value = entry.getValue();
+	                        if (value != null) {
+	                            mapping.put(key.toString(), value.toString());
+	                            String myValue = map.get(key);
+	                            String expectedValue = value.toString();
+	                            String keyString = key.toString();
+	                            if (!keyString.equals("companyId") && myValue != null && value != null && !value.toString().isEmpty()) {
+	                                myValue = myValue.toLowerCase();
+	                                if (!myValue.contains(expectedValue.toLowerCase()) && !myValue.equals(expectedValue.toLowerCase())) {
+	                                    flag = 0;
+	                                }
+	                            }
+	                        }
+	                    }
+	                    if (flag == 1) {
+	                        return true;
+	                    }
+	                } catch (JsonMappingException e) {
+	                    e.printStackTrace();
+	                } catch (JsonProcessingException e) {
+	                    e.printStackTrace();
+	                }
+	                return false;
+	            }).collect(Collectors.toList());
+	            
+	            int startItem = pageNumber * pageSize;
+	            int endItem = Math.min(startItem + pageSize, filteredAssetsWithAllFields.size());
+	            if (startItem > filteredAssetsWithAllFields.size()) {
+
+	                return new PaginatedResultDTO<>( Collections.emptyList(), 0);
+	            }
+	            totalPage=filteredAssetsWithAllFields.size();
+	            filteredAssetsWithAllFields = filteredAssetsWithAllFields.subList(startItem, endItem);
+
+	           
+	        } else {
+	            System.out.println("The filter is not a Map instance");
+	        }
+		 
+//		System.out.println(filteredAssetsWithAllFields.size());
+		System.out.println("----------"+filteredAssetsWithAllFields.size());
+		 return new PaginatedResultDTO<>(filteredAssetsWithAllFields, totalPage);
+
+		
+	}
+
 	
 
 	

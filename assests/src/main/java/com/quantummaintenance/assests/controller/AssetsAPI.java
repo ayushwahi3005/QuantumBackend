@@ -1,11 +1,11 @@
 package com.quantummaintenance.assests.controller;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.Date;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,6 +15,10 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParseException;
 
 import java.io.*;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 import org.springframework.web.client.RestTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
@@ -23,6 +27,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,14 +46,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.modelmapper.ModelMapper;
 
 import com.quantummaintenance.assests.dto.*;
-import com.quantummaintenance.assests.dto.AssetImageDTO;
-import com.quantummaintenance.assests.dto.AssetsDTO;
-import com.quantummaintenance.assests.dto.CheckInDTO;
-import com.quantummaintenance.assests.dto.CheckInOutDTO;
-import com.quantummaintenance.assests.dto.ExcelDatabaseColumnMapping;
-import com.quantummaintenance.assests.dto.ExtraFieldNameDTO;
-import com.quantummaintenance.assests.dto.ExtraFieldsDTO;
-import com.quantummaintenance.assests.dto.ResponseMessageDTO;
 import com.quantummaintenance.assests.entity.Assets;
 import com.quantummaintenance.assests.entity.ExtraFieldName;
 import com.quantummaintenance.assests.entity.MandatoryFields;
@@ -59,16 +56,25 @@ import com.quantummaintenance.assests.repository.AssetsRepository;
 import com.quantummaintenance.assests.repository.ExtraFieldNameRepository;
 import com.quantummaintenance.assests.repository.ExtraFieldsRepository;
 import com.quantummaintenance.assests.service.AssetsService;
+import com.quantummaintenance.assests.exception.*;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.mail.javamail.MimeMessageHelper;
 
 //@CrossOrigin("http://localhost:4200/")
 //@CrossOrigin("*")
 @RestController
 @RequestMapping("/assets")
 public class AssetsAPI {
-
+	
+	
+	@Autowired
+	private JavaMailSender emailSender;
 	
 	@Autowired
 	private AssetsService assetsService;
@@ -82,9 +88,16 @@ public class AssetsAPI {
 	@Autowired
 	private AssetsRepository assetsRepository;
 	
+	
+	
 	 private ModelMapper modelMapper=new ModelMapper();
 	
 	RestTemplate restTemplate = new RestTemplate();
+	
+	@GetMapping("/working")
+	public String working(){
+		return "Working";
+	}
 	
 	@GetMapping("/{companyId}")
 	public List<AssetsDTO> getAssets(@PathVariable String companyId){
@@ -103,8 +116,8 @@ public class AssetsAPI {
 		AssetsDTO assetsDTO= assetsService.addAssets(assestsDTO);
 		return ResponseEntity.ok(assetsDTO);
 	}
-	@PostMapping("/import/{companyId}")
-	public void importFile(@RequestParam("file") MultipartFile file,@RequestParam("columnMappings") String columnMappings,@PathVariable String companyId) throws CsvValidationException {
+	@PostMapping("/import/{companyId}/{email}")
+	public void importFile(@RequestParam("file") MultipartFile file,@RequestParam("columnMappings") String columnMappings,@PathVariable String companyId,@PathVariable String email) throws CsvValidationException, MessagingException,ImportFileRowException {
 //		System.out.println("------||---------------------------------------/////////////////////////////////////------->"+columnMappings);
 		HttpHeaders myheaders = new HttpHeaders();
 //TO BE IMPLEMENTED WHEN AUTHORIZATION IS ADDED		myheaders.set("Authorization", token);
@@ -157,10 +170,20 @@ public class AssetsAPI {
         } catch (Exception e) {
             e.printStackTrace();
         }
-//	 columnMap.forEach((key,val)->{
-//		 System.out.println(key+"--------------> " + val);
-//	});
+	   System.out.println("--------------> "+columnMap.size());
 		List<AssetsDTO> assetList=new ArrayList<AssetsDTO>(); 
+		
+		try (InputStream inputStream = file.getInputStream();
+		         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+			  if(reader.lines().count()>5001) {
+				  throw new ImportFileRowException("Import File cannot import more than 5000 rows");
+			  }
+		       
+		    } catch (IOException e) {
+		        // Handle IOException
+		        e.printStackTrace();
+		       
+		    }
 	try (InputStreamReader reader = new InputStreamReader(file.getInputStream());
 	         CSVReader csvReader = new CSVReader(reader)) {
 
@@ -172,15 +195,32 @@ public class AssetsAPI {
 	                headerMap.put(i, headers[i]);
 	            }
 	        }
-//	        headerMap.forEach((x,y)->{
-//	        	System.out.println(x+"--------------> " + y);
-//	        });
+
+	        
+	        
+	        
+	        
+	        
+	        
+	        
+	        
+	        
 
 	        String[] row;
+	        long ind=0;
+	        Workbook workbook = new XSSFWorkbook();
+
+	        // Create a Sheet
+	        Sheet sheet = workbook.createSheet("Sheet1");
+	        int excelIndex=0;
 	        while ((row = csvReader.readNext()) != null) {
+	        	Row myrow= sheet.createRow(excelIndex);
+	        	 Cell cell1 = myrow.createCell(0);
+     	        cell1.setCellValue("Line "+(int)(ind+1));
 	            AssetsDTO assetsDTO = new AssetsDTO();
 	            assetsDTO.setCompanyId(companyId);
 	            int errorFlag=0;
+	            String errorDesc="";
 //	            System.out.println("-------|||||---errorFlag----> "+errorFlag);
 	            for (int j = 0; j < row.length; j++) {
 	                String field = headerMap.get(j);
@@ -215,7 +255,14 @@ public class AssetsAPI {
 	                            CompanyCustomerDTO.class
 	                    );
 	                	if(response.getBody()==null) {
-	                		System.out.println("ERROR WHILE ADDING IN CUSTOMER");
+	                		System.out.println("ERROR WHILE ADDING IN CUSTOMER for row->"+ind);
+	                		  
+
+	                	        // Create Cells and set values
+	                		  errorDesc+="ERROR WHILE ADDING IN CUSTOMER";
+	                	       
+
+	                	        
 	                		errorFlag=1;
 	                		break;
 	                	}
@@ -240,7 +287,11 @@ public class AssetsAPI {
 	                		
 	                	}
 	                	else {
-
+	                		System.out.println("ERROR WHILE ADDING IN Status for line->"+ind);
+	                		if(errorDesc.length()>0) {
+	                			errorDesc+=", ";
+	                		}
+	                		errorDesc+="ERROR WHILE ADDING IN STATUS";
 	                		errorFlag=1;
 	                		break;
 	                	}
@@ -256,7 +307,7 @@ public class AssetsAPI {
 //	            System.out.println("///'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/  reached errorFlag" +errorFlag);
 	            if(errorFlag==0) {
 //	            	System.out.println("///'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/");
-		            AssetsDTO mynewAsset=assetsService.addAssets(assetsDTO);
+	            	 AssetsDTO mynewAsset=assetsService.addAssets(assetsDTO);
 		            
 		            //-------------------------------------------
 		            for (int j = 0; j < row.length; j++) {
@@ -272,26 +323,118 @@ public class AssetsAPI {
 		                String value=row[j];
 		                
 		               List<ExtraFieldName> listExtraFieldName= extraFieldNameRepository.findByCompanyId(companyId);
-	
-		               listExtraFieldName.stream().forEach((x)->{
-		            	   if(columnMap.get(field).toLowerCase().equals(x.getName().toLowerCase())) {
+		               
+		               for(int i=0;i<listExtraFieldName.size();i++) {
+		            	   if(columnMap.get(field).toLowerCase().equals(listExtraFieldName.get(i).getName().toLowerCase())) {
+		            		   System.out.println("-----------------working ---->"+listExtraFieldName.get(i).getType());
 		            		   ExtraFields extraFieldsDTO=new ExtraFields(); 
 		            		   extraFieldsDTO.setAssetId(mynewAsset.getId());
-		            		   extraFieldsDTO.setName(x.getName());
-		            		   extraFieldsDTO.setType(x.getType());
-		            		   extraFieldsDTO.setValue(value);
+		            		   extraFieldsDTO.setName(listExtraFieldName.get(i).getName());
+		            		   extraFieldsDTO.setType(listExtraFieldName.get(i).getType());
+		            		  
 		            		   extraFieldsDTO.setCompanyId(companyId);
+		            		   if(listExtraFieldName.get(i).getType().equals("number")) {
+		            			   try {
+		            				   Integer val=Integer.parseInt(value);
+		            				   System.out.println("-----------------extra---->"+val+"->"+value);
+		            				   extraFieldsDTO.setValue(val.toString()); 
+		            			   }
+		            			   catch(Exception e) {
+		            				   System.out.println("ERROR WHILE ADDING EXTRA IN"+ listExtraFieldName.get(i).getName()+" for row->"+ind+1);
+		            				 errorFlag=1;
+				                		if(errorDesc.length()>0) {
+				                			errorDesc+=", ";
+				                		}
+				                		errorDesc+="ERROR WHILE ADDING IN "+listExtraFieldName.get(i).getName().toUpperCase();
+		            			   }
+		            		   }
+		            		   if(listExtraFieldName.get(i).getType().equals("date")) {
+		            			   try {
+		            				
+		            				   DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+		            			        LocalDate date = LocalDate.parse(value, inputFormatter);
+
+		            			        DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		            			        String formattedDate = date.format(outputFormatter);
+		            				  
+		            				   System.out.println("-----------------extra-date--->"+formattedDate+"->"+value);
+		            				   extraFieldsDTO.setValue(formattedDate); 
+		            			   }
+		            			   catch(Exception e) {
+		            				   System.out.println("ERROR WHILE ADDING EXTRA IN"+ listExtraFieldName.get(i).getName()+" for row->"+ind+1);
+		            				 errorFlag=1;
+				                		if(errorDesc.length()>0) {
+				                			errorDesc+=", ";
+				                		}
+				                		errorDesc+="ERROR WHILE ADDING IN "+listExtraFieldName.get(i).getName().toUpperCase();
+		            			   }
+		            		   }
+		            		   else {
+		            			   extraFieldsDTO.setValue(value); 
+		            		   }
+		            		   if(errorFlag==0) {
 		            		   extraFieldsRepository.save(extraFieldsDTO);
+		            		   }
+		            		   else {
+		            			   Assets myAsset=modelMapper.map(mynewAsset, Assets.class);
+		            			   assetsRepository.delete(myAsset);
+		            			   
+		            		   }
 		            	   }
-		               });
+		               }
+	
+//		               listExtraFieldName.stream().forEach((x)->{
+//		            	   
+//		            	   
+//		               });
 		                
 		            
 		            }
 	            }
 	           
 
-	            System.out.println();
+	          
+	            Cell cell2 = myrow.createCell(1);
+    	        cell2.setCellValue(errorDesc);
+    	        if(errorFlag==1) {
+    	        	System.out.println("Inside errorFLag");
+    	       
+    	        // Close the workbook to release resources
+    	        excelIndex++;
+    	       
+    	        }
+	            ind++;
 	            
+	        }
+	        if(excelIndex>0) {
+	        	 try (FileOutputStream fileOut = new FileOutputStream("Report.xlsx")) {
+	    	            workbook.write(fileOut);
+	    	        }
+	        	 workbook.close();
+	        	MimeMessage message = emailSender.createMimeMessage();
+	            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+	            helper.setTo(email);
+	            helper.setSubject("Import Report from AssetYug");
+	            helper.setText("Hey, We have attached import result below");
+	            helper.addAttachment("AssetAttachment.xlsx", new File("Report.xlsx"));
+
+	            emailSender.send(message);
+	        }
+	        if(excelIndex==0) {
+	        	 try (FileOutputStream fileOut = new FileOutputStream("Report.xlsx")) {
+	    	            workbook.write(fileOut);
+	    	        }
+	        	 workbook.close();
+	        	MimeMessage message = emailSender.createMimeMessage();
+	            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+	            helper.setTo(email);
+	            helper.setSubject("Import Report from AssetYug");
+	            helper.setText("Hey, Your Import was Successfully Done");
+//	            helper.addAttachment("ExcelAttachment.xlsx", new File("Report.xlsx"));
+
+	            emailSender.send(message);
 	        }
 
 	        
@@ -307,8 +450,8 @@ public class AssetsAPI {
 		
 		
 	}
-	@PostMapping("/importUpdation/{companyId}")
-	public void updateAssetWithFile(@RequestParam("file") MultipartFile file,@RequestParam("columnMappings") String columnMappings,@PathVariable String companyId) throws CsvValidationException, JsonParseException, IOException {
+	@PostMapping("/importUpdation/{companyId}/{email}")
+	public void updateAssetWithFile(@RequestParam("file") MultipartFile file,@RequestParam("columnMappings") String columnMappings,@PathVariable String companyId,@PathVariable String email) throws CsvValidationException, JsonParseException, IOException, MessagingException,ImportFileRowException {
 		HttpHeaders myheaders = new HttpHeaders();
 		//TO BE IMPLEMENTED WHEN AUTHORIZATION IS ADDED		myheaders.set("Authorization", token);
 		        HttpEntity<CompanyCustomerDTO> entity = new HttpEntity<>(myheaders);
@@ -361,7 +504,17 @@ public class AssetsAPI {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
+	 try (InputStream inputStream = file.getInputStream();
+	         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+		  if(reader.lines().count()>5001) {
+			  throw new ImportFileRowException("Import File cannot import more than 5000 rows");
+		  }
+	       
+	    } catch (IOException e) {
+	        // Handle IOException
+	        e.printStackTrace();
+	       
+	    }
 		List<AssetsDTO> assetList=new ArrayList<AssetsDTO>(); 
 	try (InputStreamReader reader = new InputStreamReader(file.getInputStream());
 	         CSVReader csvReader = new CSVReader(reader)) {
@@ -377,15 +530,28 @@ public class AssetsAPI {
 	 
 
 	        String[] row;
+	        long ind=0;
+	        Workbook workbook = new XSSFWorkbook();
+
+	        // Create a Sheet
+	        Sheet sheet = workbook.createSheet("Sheet1");
+	        int excelIndex=0;
 	        while ((row = csvReader.readNext()) != null) {
+	        	Row myrow= sheet.createRow(excelIndex);
+	        	 Cell cell1 = myrow.createCell(0);
+	     	        cell1.setCellValue("Line "+(int)(ind+1));
 	        	int errorFlag=0;
+	        	  String errorDesc="";
 //	            AssetsDTO assetsDTO = new AssetsDTO();
 //	            assetsDTO.setCompanyId(companyId);
 	        	 Assets assets=new Assets();
 	            for (int j = 0; j < row.length; j++) {
+	            	if(j>0&&assets==null) {
+	            		break;
+	            	}
 	                String field = headerMap.get(j);
 //	                System.out.println("--------------> "+j+" " + row[j]);
-	                System.out.print("-------|||||-------> "+columnMap.get(field).toLowerCase());
+//	                System.out.print("-------|||||-------> "+columnMap.get(field).toLowerCase());
 
 	                
 	                
@@ -394,6 +560,7 @@ public class AssetsAPI {
 	                switch ( columnMap.get(field).toLowerCase()) {
 	                case "assetid":
 	                    String assetIdValue = row[j].trim();
+	                    System.out.println("assetId------------------->"+assetIdValue);
 //	                    assetIdValue = assetIdValue.substring(0, assetIdValue.length() - 2);
 //	                    try {
 //	                        if (!assetIdValue.isEmpty()) {
@@ -410,20 +577,29 @@ public class AssetsAPI {
 //	                    System.out.println("------------------/////////----"+assets.getId());
 //	                    assetsDTO.setId(assets.getId());
 //	                    System.out.println("------------------/////////----"+assetsDTO.getId());
+	                    if(assets==null) {
+	                    	errorFlag=1;
+	                    	 errorDesc+="ERROR WHILE UPDATING IN ASSETID";
+	                    }
 	                    break;
 	                
 
 	                case "name":
+	                	
 	                	assets.setName(row[j]);
+	                	
 	                    break;
 	                    
 	                case "serialnumber":
+	                
 	                	assets.setSerialNumber(row[j]);
 	                    break;
 	                case "category":
+	                
 	                	assets.setCategory(row[j]);
 	                    break;
 	                case "customer":
+	                	
 	                	ResponseEntity<CompanyCustomerDTO> response = restTemplate.exchange(
 	                			companyCustomerApi+row[j],
 	                            HttpMethod.GET,
@@ -431,9 +607,12 @@ public class AssetsAPI {
 	                            CompanyCustomerDTO.class
 	                    );
 	                	if(response.getBody()==null) {
-	                		System.out.println("ERROR WHILE ADDING IN CUSTOMER");
+	                		System.out.println("ERROR WHILE UPDATING IN CUSTOMER");
+	                		 errorDesc+="ERROR WHILE UPDATING IN CUSTOMER";
+	                	      
+
 	                		errorFlag=1;
-	                		break;
+	                		
 	                	}
 	                	else {
 	                	CompanyCustomerDTO companyCustomerDTO=modelMapper.map(response.getBody(), CompanyCustomerDTO.class);
@@ -441,8 +620,9 @@ public class AssetsAPI {
 	                	assets.setCustomerId(companyCustomerDTO.getId());
 	                	assets.setCustomer(companyCustomerDTO.getName());
 	                  
-	                    break;
+	                   
 	                	}
+	                	break;
 	                case "location":
 	                	assets.setLocation(row[j]);
 	                    break;
@@ -455,7 +635,10 @@ public class AssetsAPI {
 	                		
 	                	}
 	                	else {
-
+	                		if(errorDesc.length()>0) {
+	                			errorDesc+=", ";
+	                		}
+	                		errorDesc+="ERROR WHILE UPDATING IN STATUS";
 	                		errorFlag=1;
 	                		break;
 	                	}
@@ -469,30 +652,114 @@ public class AssetsAPI {
 	                
 		               List<ExtraFieldName> listExtraFieldName= extraFieldNameRepository.findByCompanyId(companyId);
 		               String id=assets.getId();
-//		               System.out.println("--------id------>"+id);
-		               listExtraFieldName.stream().forEach((x)->{
-		            	   if(columnMap.get(field).toLowerCase().equals(x.getName().toLowerCase())) {
+  
+		               
+		               for(int i=0;i<listExtraFieldName.size();i++) {
+		            	   if(columnMap.get(field).toLowerCase().equals(listExtraFieldName.get(i).getName().toLowerCase())) {
 		            		   ExtraFields extraFieldsDTO=new ExtraFields(); 
-		            		   Optional<ExtraFields> extraFieldsOptional=extraFieldsRepository.findByNameAndAssetId(x.getName(), id);
+		            		   Optional<ExtraFields> extraFieldsOptional=extraFieldsRepository.findByNameAndAssetId(listExtraFieldName.get(i).getName(), id);
+		            		   System.out.println("-----------------working ---->"+listExtraFieldName.get(i).getType());
 		            		   if(extraFieldsOptional.isPresent()) {
-		            		   extraFieldsDTO.setId(extraFieldsOptional.get().getId());
-		            		   extraFieldsDTO.setAssetId(id);
-		            		   extraFieldsDTO.setName(x.getName());
-		            		   extraFieldsDTO.setType(x.getType());
-		            		   extraFieldsDTO.setValue(value);
-		            		   extraFieldsDTO.setCompanyId(companyId);
+			            		   extraFieldsDTO.setId(extraFieldsOptional.get().getId());
+			            		   extraFieldsDTO.setAssetId(id);
+			            		   extraFieldsDTO.setName(listExtraFieldName.get(i).getName());
+			            		   extraFieldsDTO.setType(listExtraFieldName.get(i).getType());
+			            		   if(listExtraFieldName.get(i).getType().equals("number")) {
+			            			   try {
+			            				   Integer val=Integer.parseInt(value);
+			            				   System.out.println("-----------------extra---->"+val+"->"+value);
+			            				   extraFieldsDTO.setValue(val.toString()); 
+			            			   }
+			            			   catch(Exception e) {
+			            				   System.out.println("ERROR WHILE ADDING EXTRA IN"+ listExtraFieldName.get(i).getName()+" for row->"+ind);
+			            				 errorFlag=1;
+					                		if(errorDesc.length()>0) {
+					                			errorDesc+=", ";
+					                		}
+					                		errorDesc+="ERROR WHILE ADDING IN "+listExtraFieldName.get(i).getName().toUpperCase();
+			            			   }
+			            		   }
+			            		   else if(listExtraFieldName.get(i).getType().equals("date")) {
+			            			   try {
+			            				
+			            				   DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+			            			        LocalDate date = LocalDate.parse(value, inputFormatter);
+
+			            			        DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+			            			        String formattedDate = date.format(outputFormatter);
+			            				  
+			            				   System.out.println("-----------------extra-date--->"+formattedDate+"->"+value);
+			            				   extraFieldsDTO.setValue(formattedDate); 
+			            			   }
+			            			   catch(Exception e) {
+			            				   System.out.println("ERROR WHILE ADDING EXTRA IN"+ listExtraFieldName.get(i).getName()+" for row->"+ind);
+			            				 errorFlag=1;
+					                		if(errorDesc.length()>0) {
+					                			errorDesc+=", ";
+					                		}
+					                		errorDesc+="ERROR WHILE ADDING IN "+listExtraFieldName.get(i).getName().toUpperCase();
+			            			   }
+			            		   }
+				            		else {
+				            			   extraFieldsDTO.setValue(value); 
+				            		   }
+				            		  
+			            		   }
+			            		   else {
+			            			   extraFieldsDTO.setAssetId(id);
+				            		   extraFieldsDTO.setName(listExtraFieldName.get(i).getName());
+				            		   extraFieldsDTO.setType(listExtraFieldName.get(i).getType());
+				            		   if(listExtraFieldName.get(i).getType().equals("number")) {
+				            			   try {
+				            				   Integer val=Integer.parseInt(value);
+				            				   System.out.println("-----------------extra---->"+val+"->"+value);
+				            				   extraFieldsDTO.setValue(val.toString()); 
+				            			   }
+				            			   catch(Exception e) {
+				            				   System.out.println("ERROR WHILE ADDING EXTRA IN"+ listExtraFieldName.get(i).getName()+" for row->"+ind+1);
+				            				 errorFlag=1;
+						                		if(errorDesc.length()>0) {
+						                			errorDesc+=", ";
+						                		}
+						                		errorDesc+="ERROR WHILE ADDING IN "+listExtraFieldName.get(i).getName().toUpperCase();
+				            			   }
+				            		   }
+				            		   else if(listExtraFieldName.get(i).getType().equals("date")) {
+				            			   try {
+				            				
+				            				   DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+				            			        LocalDate date = LocalDate.parse(value, inputFormatter);
+
+				            			        DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+				            			        String formattedDate = date.format(outputFormatter);
+				            				  
+				            				   System.out.println("-----------------extra-date--->"+formattedDate+"->"+value);
+				            				   extraFieldsDTO.setValue(formattedDate); 
+				            			   }
+				            			   catch(Exception e) {
+				            				   System.out.println("ERROR WHILE ADDING EXTRA IN"+ listExtraFieldName.get(i).getName()+" for row->"+ind+1);
+				            				 errorFlag=1;
+						                		if(errorDesc.length()>0) {
+						                			errorDesc+=", ";
+						                		}
+						                		errorDesc+="ERROR WHILE ADDING IN "+listExtraFieldName.get(i).getName().toUpperCase();
+				            			   }
+				            		   }
+				            		   else {
+				            			   extraFieldsDTO.setValue(value); 
+				            		   }
+				            		   extraFieldsDTO.setCompanyId(companyId);
+				            		  
+			            		   }
+		            		  
+		            		 
+		            		   
+		            		   if(errorFlag==0) {
+		            			   System.out.println("Saving Row:"+(int)(ind+1));
 		            		   extraFieldsRepository.save(extraFieldsDTO);
 		            		   }
-		            		   else {
-		            			   extraFieldsDTO.setAssetId(id);
-			            		   extraFieldsDTO.setName(x.getName());
-			            		   extraFieldsDTO.setType(x.getType());
-			            		   extraFieldsDTO.setValue(value);
-			            		   extraFieldsDTO.setCompanyId(companyId);
-			            		   extraFieldsRepository.save(extraFieldsDTO);
-		            		   }
 		            	   }
-		               });  
+		               }
 	                }
 	            
 	            }
@@ -505,7 +772,48 @@ public class AssetsAPI {
 	           
 
 //	            System.out.println();
+	            Cell cell2 = myrow.createCell(1);
+    	        cell2.setCellValue(errorDesc);
+    	        if(errorFlag==1) {
+    	        	System.out.println("Inside errorFLag");
+    	       
+    	        // Close the workbook to release resources
+    	        excelIndex++;
+    	       
+    	        }
+	            ind++;
 	            
+	            
+	        }
+	        if(excelIndex>0) {
+	        	 try (FileOutputStream fileOut = new FileOutputStream("Report.xlsx")) {
+	    	            workbook.write(fileOut);
+	    	        }
+	        	 workbook.close();
+	        	MimeMessage message = emailSender.createMimeMessage();
+	            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+	            helper.setTo(email);
+	            helper.setSubject("Import Report from AssetYug");
+	            helper.setText("Hey, We have attached import result below");
+	            helper.addAttachment("AssetAttachment.xlsx", new File("Report.xlsx"));
+
+	            emailSender.send(message);
+	        }
+	        if(excelIndex==0) {
+	        	 try (FileOutputStream fileOut = new FileOutputStream("Report.xlsx")) {
+	    	            workbook.write(fileOut);
+	    	        }
+	        	 workbook.close();
+	        	MimeMessage message = emailSender.createMimeMessage();
+	            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+	            helper.setTo(email);
+	            helper.setSubject("Import Report from AssetYug");
+	            helper.setText("Hey, Your Update was Successfully Done");
+//	            helper.addAttachment("ExcelAttachment.xlsx", new File("Report.xlsx"));
+
+	            emailSender.send(message);
 	        }
 
 
@@ -661,7 +969,7 @@ public class AssetsAPI {
 	}
 	
 	@GetMapping("/getAllAssetData/{companyId}")
-	public List<String> getAllAssetData(@PathVariable String companyId){
+	public PaginatedResultDTO<String> getAllAssetData(@PathVariable String companyId){
 		return assetsService.getAllAssetDetails(companyId);
 	}
 	
@@ -684,6 +992,14 @@ public class AssetsAPI {
 		assetsService.updateAssetsWithInActive(customerId);
 		
 	}
+	
+	@PostMapping("/advanceFilter/{pageNumber}/{pageSize}")
+	public PaginatedResultDTO<String> advanceFilter(@RequestBody  Object filter,@PathVariable Integer pageNumber,@PathVariable Integer pageSize) {
+		System.out.print(pageNumber);
+		return assetsService.advanceFilter(filter,pageNumber,pageSize);
+		
+	}
+
 	
 	
 }

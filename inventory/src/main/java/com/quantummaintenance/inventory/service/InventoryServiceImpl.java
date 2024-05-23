@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.quantummaintenance.inventory.repository.IdTableRepository;
 import com.quantummaintenance.inventory.dto.ExtraFieldNameDTO;
 import com.quantummaintenance.inventory.dto.ExtraFieldsDTO;
 import com.quantummaintenance.inventory.dto.InventoryDTO;
@@ -39,11 +40,35 @@ public class InventoryServiceImpl implements InventoryService {
 	@Autowired
 	ShowFieldsRepository showFieldsRepository;
 	
+	@Autowired
+	private IdTableRepository idTableRepository;
+	
 	private ModelMapper modelMapper=new ModelMapper();
 	@Override
 	public Inventory addInventory(InventoryDTO inventoryDTO) {
 		// TODO Auto-generated method stub
 		Inventory inventory=modelMapper.map(inventoryDTO, Inventory.class);
+		if(inventoryDTO.getInventoryId()==null) {
+			Optional<IdTable> optionalIdTable=idTableRepository.findByCompanyId(inventoryDTO.getCompanyId());
+			if(optionalIdTable.isEmpty()) {
+				inventory.setInventoryId(1);
+				IdTable myidTable=new IdTable();
+				myidTable.setTableId(2);
+				myidTable.setCompanyId(inventoryDTO.getCompanyId());
+//				System.out.println("---------------------new---------->"+idTable.getTableId());
+				idTableRepository.save(myidTable);
+			}
+			else {
+//				List<IdTable> idTableList=idTableRepository.findAll();
+//				IdTable idTable=idTableList.get(0);
+				IdTable idTable=optionalIdTable.get();
+				inventory.setInventoryId(idTable.getTableId());
+				idTable.updateId();
+//				System.out.println("---------------------already---------->"+idTable.getTableId()+" "+idTable.get);
+				idTableRepository.save(idTable);
+			}
+		}
+
 		return inventoryRepository.save(inventory);
 		
 	}
@@ -274,6 +299,7 @@ public class InventoryServiceImpl implements InventoryService {
 				});
 			});
 			m.put("id", order.getId());
+			m.put("inventoryId", order.getInventoryId().toString());
 			m.put("partId",order.getPartId());
 			m.put("partImage",order.getPartImage());
 			m.put("partName",order.getPartName());

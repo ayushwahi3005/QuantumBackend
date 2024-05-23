@@ -14,6 +14,7 @@ import com.quantummaintenance.assests.dto.CheckInDTO;
 import com.quantummaintenance.assests.dto.CheckInOutDTO;
 import com.quantummaintenance.assests.dto.ExtraFieldNameDTO;
 import com.quantummaintenance.assests.dto.ExtraFieldsDTO;
+import com.quantummaintenance.assests.dto.PaginatedResultDTO;
 import com.quantummaintenance.assests.entity.AssetFile;
 import com.quantummaintenance.assests.entity.Assets;
 import com.quantummaintenance.assests.entity.MandatoryFields;
@@ -53,9 +54,11 @@ public interface AssetsService {
 	public void updateAssetWithFile(List<AssetsDTO> assetsDTOList,String companyId);
 	public void qrDataUpdation(QR qr);
 	public QR getQRData(String companyId);
-	public List<String> getAllAssetDetails(String companyId);
+	public PaginatedResultDTO<String> getAllAssetDetails(String companyId);
 	public List<String> sortAssets(String companyId, String field);
 	public List<String> searchedAssets(String companyId,String data, String field);
 	public void updateAssetsWithInActive(String customerId);
+	public PaginatedResultDTO<String> advanceFilter(Object filter, int pageNumber, int pageSize);
+
 	
 }

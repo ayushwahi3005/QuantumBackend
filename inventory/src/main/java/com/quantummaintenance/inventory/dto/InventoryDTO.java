@@ -4,7 +4,9 @@ import lombok.Data;
 
 @Data
 public class InventoryDTO {
+	
 	private String id;
+	private Integer inventoryId;
 	private String partId;
 	private String partImage;
 	private String partName;
